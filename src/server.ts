@@ -1,17 +1,17 @@
 import express, { type Application, type Request, type Response } from "express"
-import {Pool} from "pg";
-const app : Application = express()
+import { Pool } from "pg";
+const app: Application = express()
 const port = 5000;
 app.use(express.json());
 app.use(express.text());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 const pool = new Pool({
-  connectionString:"postgresql://neondb_owner:npg_cXshLbyaK9U6@ep-fragrant-king-aqxp6a6f-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  connectionString: "postgresql://neondb_owner:npg_cXshLbyaK9U6@ep-fragrant-king-aqxp6a6f-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 })
 
-const initDB = async()=>{
-  try{
+const initDB = async () => {
+  try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users(
       id SERIAL PRIMARY KEY,
@@ -27,41 +27,71 @@ const initDB = async()=>{
       )
       `)
 
-      console.log("Database conneted sucessfully")
+    console.log("Database conneted sucessfully")
   }
-  catch(error){
+  catch (error) {
     console.log(error);
   }
 };
 initDB();
 
-app.get('/', (req : Request, res: Response) => {
+app.get('/', (req: Request, res: Response) => {
   // res.send('Hello World!')
-   res.status(200).json({"message" : "Express Server",
-    "author" : "Next Level",
-   })
+  res.status(200).json({
+    "message": "Express Server",
+    "author": "Next Level",
+  })
 })
 
-app.post("/api/users", async(req:Request, res: Response)=>{
+app.post("/api/users", async (req: Request, res: Response) => {
   // console.log(req.body);
-  const {name, email, password, age} = req.body;
-  
- try{
-   const result = await pool.query(`
+  const { name, email, password, age } = req.body;
+
+  try {
+    const result = await pool.query(`
     INSERT INTO users(name, email, password, age) VALUES($1,$2,$3,$4) 
     RETURNING *
     `, [name, email, password, age])
-  console.log(result);
-  res.status(201).json({
-    message:"created",
-  data:result.rows[0]
-  })
- } catch(error:any){
-  res.status(500).json({
-    message: error.message,
-    error:error
-  })
- }
+    console.log(result);
+    res.status(201).json({
+      success: true,
+      message: "created",
+      data: result.rows[0]
+    })
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      error: error
+    })
+  }
+})
+
+app.get('/api/users', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM users
+      `);
+    res.status(200).json({
+      success: true,
+      message: "Users retrived successfully!!",
+      data: result.rows
+    })
+
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      error: error
+    });
+  }
+})
+
+//single user send data
+
+app.get('/api/users/:id', async(req: Request, res:Response){
+  const id = req.params;
+  console.log(req.params)
 })
 
 app.listen(port, () => {
