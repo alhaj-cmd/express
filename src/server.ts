@@ -7,7 +7,7 @@ app.use(express.text());
 app.use(express.urlencoded({ extended: true }));
 
 const pool = new Pool({
-  connectionString: "postgresql://neondb_owner:npg_cXshLbyaK9U6@ep-fragrant-king-aqxp6a6f-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  connectionString: ""
 })
 
 const initDB = async () => {
@@ -117,12 +117,78 @@ app.get('/api/users/:id', async (req: Request, res: Response) => {
 }
 })
 
-app.put('/api/users/:id', async (req:Request, res: Response){
+app.put('/api/users/:id', async (req:Request, res: Response) =>{
   const { id } = req.params;
   const { name, password, age, is_active }= req.body;
 
-  console.log('Id :',id);
-  console.log({ name, password, age, is_active });
+  // console.log('Id :',id);
+  // console.log({ name, password, age, is_active });
+
+  try{
+    const result = await pool.query(`
+    UPDATE users SET
+     name=COALESCE($1, name),
+      password=COALESCE($2, password),
+       age=COALESCE($3, age),
+        is_active=COALESCE($4,  is_active)
+
+    WHERE id =$5 RETURNING *
+    
+    `,[name, password, age, is_active, id])
+
+    if(result.rows.length === 0){
+        res.status(404).json({
+      success: false,
+      message: "Single user unsuccessfully!!",
+      data: { }
+      })
+
+    }
+
+    // console.log(result);
+
+res.status(200).json({
+    success: true,
+      message: "User send request updated",
+      data: result.rows[0]
+  });
+  } catch(error:any){
+    res.status(404).json({
+    success: false,
+    message: error.message,
+    error: error
+    })
+  }
+})
+
+app.delete('/api/users/:id', async (req:Request, res: Response) =>{
+  const {id} = req.params;
+  try{
+    const result = await pool.query(`
+     DELETE FROM users WHERE id =$1
+      `,[id]);
+
+      if(result.rowCount===0){
+          res.status(404).json({
+      success: false,
+      message: "Deleted successfully!!",
+          });
+
+      }
+
+      res.status(200).json({
+    success: true,
+      message: "User Delete successfuly",
+      data:{}
+  });
+
+  }catch(error:any){
+    res.status(404).json({
+    success: false,
+    message: error.message,
+    error: error
+    })
+  }
 })
 
 app.listen(port, () => {
