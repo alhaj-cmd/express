@@ -42,7 +42,7 @@ app.get('/', (req : Request, res: Response) => {
    })
 })
 
-app.post("/", async(req:Request, res: Response)=>{
+app.post("/api/users", async(req:Request, res: Response)=>{
   // console.log(req.body);
   const {name, email, password, age} = req.body;
   
